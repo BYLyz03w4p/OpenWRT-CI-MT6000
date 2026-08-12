@@ -6,12 +6,9 @@ name: MT6000
 
 #CI计划
 on:
-  #自动编译：每天北京时间凌晨2点
+  #自动编译：每天北京时间凌晨3点（UTC 19:00）
   schedule:
-    - cron: 0 18 * * *
-  #手动编译
-  workflow_dispatch:
-  inputs:
+    - cron: 0 19 * * *
   #手动编译
   workflow_dispatch:
     inputs:
