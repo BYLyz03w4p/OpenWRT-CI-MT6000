@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 
-#固件保留10天，超过10天的Release自动删除
+#固件保留最新的10个，多余的自动删除
 name: Auto-Clean
 
 on:
@@ -16,31 +16,35 @@ jobs:
   auto_clean:
     runs-on: ubuntu-24.04
     steps:
-      - name: Delete releases older than 10 days
+      - name: Keep only the newest releases
         env:
           GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
         run: |
-          KEEP_DAYS=10
+          KEEP_NUM=10
 
-          CUTOFF=$(date -u -d "$KEEP_DAYS days ago" +%s)
-          echo "保留最近 $KEEP_DAYS 天的固件"
-          echo "截止时间：$(date -u -d "@$CUTOFF" '+%Y-%m-%d %H:%M:%S') UTC"
+          RELEASES=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 300 --json tagName,createdAt)
+          TOTAL=$(echo "$RELEASES" | jq 'length')
+
+          echo "当前固件总数：$TOTAL"
+          echo "保留最新的：$KEEP_NUM 个"
           echo "=================================="
 
-          gh release list --repo "$GITHUB_REPOSITORY" --limit 300 --json tagName,createdAt \
-            | jq -r '.[] | "\(.tagName)\t\(.createdAt)"' \
-            | while IFS=$'\t' read -r TAG CREATED; do
+          if [ "$TOTAL" -le "$KEEP_NUM" ]; then
+            echo "数量未超过 $KEEP_NUM 个，无需清理。"
+            exit 0
+          fi
+
+          echo "【保留】"
+          echo "$RELEASES" | jq -r --argjson n "$KEEP_NUM" \
+            'sort_by(.createdAt) | reverse | .[:$n] | .[] | "  " + .tagName'
+
+          echo "【删除】"
+          echo "$RELEASES" | jq -r --argjson n "$KEEP_NUM" \
+            'sort_by(.createdAt) | reverse | .[$n:] | .[].tagName' \
+            | while read -r TAG; do
                 [ -n "$TAG" ] || continue
-
-                TS=$(date -u -d "$CREATED" +%s)
-                AGE=$(( ( $(date -u +%s) - TS ) / 86400 ))
-
-                if [ "$TS" -lt "$CUTOFF" ]; then
-                  echo "删除  $TAG  （$AGE 天前）"
-                  gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
-                else
-                  echo "保留  $TAG  （$AGE 天前）"
-                fi
+                echo "  $TAG"
+                gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
               done
 
           echo "=================================="
