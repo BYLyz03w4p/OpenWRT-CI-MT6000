@@ -1,23 +1,47 @@
 # SPDX-License-Identifier: MIT
-# Copyright (C) 2026 VIKINGYFY
 
-name: Cache-Clean
+#固件保留10天，超过10天的Release自动删除
+name: Auto-Clean
 
 on:
-  #仅手动清理（自动清理会把编译缓存一起删掉）
+  #自动清理：每天早上5点（北京时间）
+  schedule:
+    - cron: 0 21 * * *
+  #手动清理
   workflow_dispatch:
 
 permissions: write-all
 
-env:
-  GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-
 jobs:
-  cleanup:
-    runs-on: ubuntu-latest
+  auto_clean:
+    runs-on: ubuntu-24.04
     steps:
-      - name: Checkout Projects
-        uses: actions/checkout@main
+      - name: Delete releases older than 10 days
+        env:
+          GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        run: |
+          KEEP_DAYS=10
 
-      - name: Cache Clean
-        run: gh cache delete --all
+          CUTOFF=$(date -u -d "$KEEP_DAYS days ago" +%s)
+          echo "保留最近 $KEEP_DAYS 天的固件"
+          echo "截止时间：$(date -u -d "@$CUTOFF" '+%Y-%m-%d %H:%M:%S') UTC"
+          echo "=================================="
+
+          gh release list --repo "$GITHUB_REPOSITORY" --limit 300 --json tagName,createdAt \
+            | jq -r '.[] | "\(.tagName)\t\(.createdAt)"' \
+            | while IFS=$'\t' read -r TAG CREATED; do
+                [ -n "$TAG" ] || continue
+
+                TS=$(date -u -d "$CREATED" +%s)
+                AGE=$(( ( $(date -u +%s) - TS ) / 86400 ))
+
+                if [ "$TS" -lt "$CUTOFF" ]; then
+                  echo "删除  $TAG  （$AGE 天前）"
+                  gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
+                else
+                  echo "保留  $TAG  （$AGE 天前）"
+                fi
+              done
+
+          echo "=================================="
+          echo "清理完成！"
