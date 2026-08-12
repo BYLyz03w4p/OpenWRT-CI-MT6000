@@ -49,7 +49,8 @@ UPDATE_PACKAGE() {
 # 不要在这里再加 passwall / openclash / mosdns
 # 否则会和 feeds 里的同名包冲突
 #===============================================
-UPDATE_PACKAGE "argon" "sbwml/luci-theme-argon" "openwrt-25.12"
+UPDATE_PACKAGE "argon" "jerrykuku/luci-theme-argon" "master"
+UPDATE_PACKAGE "argon-config" "jerrykuku/luci-app-argon-config" "master"
 UPDATE_PACKAGE "aurora" "eamonxg/luci-theme-aurora" "master"
 UPDATE_PACKAGE "aurora-config" "eamonxg/luci-app-aurora-config" "master"
 
