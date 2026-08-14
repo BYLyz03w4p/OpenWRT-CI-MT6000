@@ -37,7 +37,7 @@ jobs:
       #默认主题（argon 或 aurora，二选一）
       WRT_THEME: argon
       #默认主机名
-      WRT_NAME: GLMT6000_28
+      WRT_NAME: GLMT6000_18
       #默认WIFI名称（实际按频段区分，见 Files/etc/uci-defaults/99-mt6000-custom）
       WRT_SSID: MT6000
       #默认WIFI密码
