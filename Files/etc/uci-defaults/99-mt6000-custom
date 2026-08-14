@@ -3,7 +3,7 @@
 
 #---------- 系统 ----------
 uci -q batch <<-EOF
-	set system.@system[0].hostname='GLMT6000_28'
+	set system.@system[0].hostname='GLMT6000_18'
 	set system.@system[0].timezone='CST-8'
 	set system.@system[0].zonename='Asia/Shanghai'
 	set system.@system[0].ttylogin='0'
